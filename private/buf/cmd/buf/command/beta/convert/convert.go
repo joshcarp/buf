@@ -17,6 +17,8 @@ package convert
 import (
 	"context"
 	"fmt"
+	"github.com/bufbuild/buf/private/bufpkg/bufimage"
+	"github.com/jhump/protoreflect/desc/protoparse"
 
 	"github.com/bufbuild/buf/private/buf/bufcli"
 	"github.com/bufbuild/buf/private/buf/bufconvert"
@@ -111,6 +113,30 @@ Must be one of format [bin,dir,git,json,mod,protofile,tar,zip].`,
 	)
 }
 
+/*
+	obj, err := datawkt.ReadBucket.Get(context.Background(), fulltype)
+	if err != nil {
+		return err
+	}
+	b, err := io.ReadAll(obj)
+	if err != nil {
+		return err
+	}
+
+desc := &descriptorpb.FileDescriptorProto{}
+
+	if err := protojson.Unmarshal(b, desc); err != nil {
+		return err
+	}
+
+imageFile, err := bufimage.NewImageFile(desc, nil,
+
+	"",
+	"",
+	false,
+	false,
+	nil)
+*/
 func run(
 	ctx context.Context,
 	container appflag.Container,
@@ -119,20 +145,45 @@ func run(
 	if err := bufcli.ValidateErrorFormatFlag(flags.ErrorFormat, errorFormatFlagName); err != nil {
 		return err
 	}
-	image, err := bufcli.NewImageForSource(
-		ctx,
-		container,
-		flags.Schema,
-		flags.ErrorFormat,
-		false, // disableSymlinks
-		"",    // configOverride
-		nil,   // externalDirOrFilePaths
-		nil,   // externalExcludeDirOrFilePaths
-		false, // externalDirOrFilePathsAllowNotExist
-		false, // excludeSourceCodeInfo
-	)
-	if err != nil {
-		return err
+	var image bufimage.Image
+	var err error
+
+	if wkpath := wktToPath(flags.Type); wkpath != "" {
+		descriptors, err := protoparse.Parser{}.ParseFiles(wkpath)
+		if err != nil {
+			return err
+		}
+		var imageFiles []bufimage.ImageFile
+		for _, desc := range descriptors {
+			imageFile, err := bufimage.NewImageFile(desc.AsFileDescriptorProto(),
+				nil,
+				"",
+				"",
+				false,
+				false,
+				nil)
+			if err != nil {
+				return err
+			}
+			imageFiles = append(imageFiles, imageFile)
+		}
+		image, err = bufimage.NewImage(imageFiles)
+	} else {
+		image, err = bufcli.NewImageForSource(
+			ctx,
+			container,
+			flags.Schema,
+			flags.ErrorFormat,
+			false, // disableSymlinks
+			"",    // configOverride
+			nil,   // externalDirOrFilePaths
+			nil,   // externalExcludeDirOrFilePaths
+			false, // externalDirOrFilePathsAllowNotExist
+			false, // excludeSourceCodeInfo
+		)
+		if err != nil {
+			return err
+		}
 	}
 	payload, err := bufcli.GetInputValue(container, flags.PayloadHashtag, "-")
 	if err != nil {
@@ -184,4 +235,110 @@ func inverseEncoding(encoding bufconvert.MessageEncoding) (bufconvert.MessageEnc
 	default:
 		return 0, fmt.Errorf("unknown message encoding %v", encoding)
 	}
+}
+
+func wktToPath(fulltype string) string {
+	switch fulltype {
+	case "google.protobuf.Timestamp":
+		return "google/protobuf/timestamp.proto"
+	case "google.protobuf.FieldMask":
+		return "google/protobuf/field_mask.proto"
+	case "google.protobuf.Api":
+		return "google/protobuf/api.proto"
+	case "google.protobuf.Method":
+		return "google/protobuf/api.proto"
+	case "google.protobuf.Mixin":
+		return "google/protobuf/api.proto"
+	case "google.protobuf.Duration":
+		return "google/protobuf/duration.proto"
+	case "google.protobuf.Struct":
+		return "google/protobuf/struct.proto"
+	case "google.protobuf.Value":
+		return "google/protobuf/struct.proto"
+	case "google.protobuf.ListValue":
+		return "google/protobuf/struct.proto"
+	case "google.protobuf.DoubleValue":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.FloatValue":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.Int64Value":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.UInt64Value":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.Int32Value":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.UInt32Value":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.BoolValue":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.StringValue":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.BytesValue":
+		return "google/protobuf/wrappers.proto"
+	case "google.protobuf.SourceContext":
+		return "google/protobuf/source_context.proto"
+	case "google.protobuf.Any":
+		return "google/protobuf/any.proto"
+	case "google.protobuf.Type":
+		return "google/protobuf/type.proto"
+	case "google.protobuf.Field":
+		return "google/protobuf/type.proto"
+	case "google.protobuf.Enum":
+		return "google/protobuf/type.proto"
+	case "google.protobuf.EnumValue":
+		return "google/protobuf/type.proto"
+	case "google.protobuf.Option":
+		return "google/protobuf/type.proto"
+	case "google.protobuf.Empty ":
+		return "google/protobuf/empty.proto"
+	case "google.protobuf.Version":
+		return "google/protobuf/compiler/plugin.proto"
+	case "google.protobuf.CodeGeneratorRequest":
+		return "google/protobuf/compiler/plugin.proto"
+	case "google.protobuf.CodeGeneratorResponse":
+		return "google/protobuf/compiler/plugin.proto"
+	case "google.protobuf.FileDescriptorSet":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.FileDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.DescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.ExtensionRangeOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.FieldDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.OneofDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.EnumDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.EnumValueDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.ServiceDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.MethodDescriptorProto":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.FileOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.MessageOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.FieldOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.OneofOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.EnumOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.EnumValueOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.ServiceOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.MethodOptions":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.UninterpretedOption":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.SourceCodeInfo":
+		return "google/protobuf/descriptor.proto"
+	case "google.protobuf.GeneratedCodeInfo":
+		return "google/protobuf/descriptor.proto"
+	}
+	return ""
 }
