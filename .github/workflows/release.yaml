@@ -193,7 +193,7 @@ jobs:
         with:
           add-paths: .
           commit-message: "Back to development"
-          branch: next/${{env.NEXT_VERSION}}
+          branch: main
           delete-branch: true
           title: "Return to development"
           body: Release complete for ${{github.ref_name}}
