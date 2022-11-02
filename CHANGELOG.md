@@ -4,6 +4,7 @@
 
 - When using managed mode, setting `enabled: false` now no longer fails `buf generate` 
   and instead prints a warning log and ignores managed mode options.
+- change the log
 
 ## [v1.9.0] - 2022-10-19
 
