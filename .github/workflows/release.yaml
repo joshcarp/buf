@@ -27,7 +27,7 @@ jobs:
       - name: trigger buf-setup-action release
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             github.rest.actions.createWorkflowDispatch({
               owner: "joshcarp",
